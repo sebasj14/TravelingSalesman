@@ -9,6 +9,7 @@ public class City {
 	public City() {
 		this.x = (int) (Math.random() * 200);
 		this.y = (int) (Math.random() * 200);
+		this.z = (int) (Math.random() * 200);
 	}
 
 	// Constructs a city at chosen x, y, z location
