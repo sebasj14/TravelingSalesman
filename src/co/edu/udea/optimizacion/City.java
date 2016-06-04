@@ -3,6 +3,7 @@ package co.edu.udea.optimizacion;
 public class City {
 	int x;
 	int y;
+	int z;
 
 	// Constructs a randomly placed city
 	public City() {
@@ -10,10 +11,11 @@ public class City {
 		this.y = (int) (Math.random() * 200);
 	}
 
-	// Constructs a city at chosen x, y location
-	public City(int x, int y) {
+	// Constructs a city at chosen x, y, z location
+	public City(int x, int y, int z) {
 		this.x = x;
 		this.y = y;
+		this.z = z;
 	}
 
 	// Gets city's x coordinate
@@ -26,11 +28,16 @@ public class City {
 		return this.y;
 	}
 
+	public int getZ() {
+		return this.z;
+	}
+
 	// Gets the distance to given city
 	public double distanceTo(City city) {
-		int xDistance = Math.abs(getX() - city.getX());
-		int yDistance = Math.abs(getY() - city.getY());
-		double distance = Math.sqrt((xDistance * xDistance) + (yDistance * yDistance));
+		double xDistance = Math.abs(getX() - city.getX());
+		double yDistance = Math.abs(getY() - city.getY());
+		double zDistance = Math.abs(getZ() - city.getZ());
+		double distance = Math.sqrt((xDistance * xDistance) + (yDistance * yDistance) + (zDistance * zDistance));
 
 		return distance;
 	}
