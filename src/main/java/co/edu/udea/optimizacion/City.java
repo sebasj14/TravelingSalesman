@@ -6,7 +6,7 @@ public class City {
 	double z;
 
 	// Constructs a city at chosen x, y, z location
-	public City(int x, int y, int z) {
+	public City(double x, double y, double z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -53,5 +53,14 @@ public class City {
 	@Override
 	public String toString() {
 		return getX() + ", " + getY() + ", " + getZ();
+	}
+
+	public boolean equals(City city) {
+		return this.getX() == city.getX() && this.getY() == city.getY() && this.getZ() == city.getZ();
+	}
+
+	@Override
+	public int hashCode() {
+		return super.hashCode();
 	}
 }

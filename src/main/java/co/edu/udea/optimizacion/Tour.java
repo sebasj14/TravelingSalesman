@@ -1,7 +1,6 @@
 package co.edu.udea.optimizacion;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 public class Tour {
 
@@ -35,7 +34,7 @@ public class Tour {
 			setCity(cityIndex, TourManager.getCity(cityIndex));
 		}
 		// Randomly reorder the tour
-		Collections.shuffle(tour);
+		// Collections.shuffle(tour);
 	}
 
 	// Gets a city from the tour

@@ -1,20 +1,16 @@
 package co.edu.udea.optimizacion;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-
-import javax.swing.JOptionPane;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.jzy3d.analysis.AbstractAnalysis;
 import org.jzy3d.analysis.AnalysisLauncher;
 import org.jzy3d.chart.factories.AWTChartComponentFactory;
 import org.jzy3d.colors.Color;
-import org.jzy3d.maths.BoundingBox3d;
 import org.jzy3d.maths.Coord3d;
 import org.jzy3d.plot3d.builder.Mapper;
 import org.jzy3d.plot3d.primitives.CroppableLineStrip;
@@ -29,8 +25,6 @@ import org.jzy3d.plot3d.rendering.scene.Scene;
 import org.jzy3d.plot3d.rendering.view.CroppingView;
 import org.jzy3d.plot3d.rendering.view.View;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 public class SimulatedAnnealing extends AbstractAnalysis {
 
 	private static List<City> solution = new ArrayList<>();
@@ -39,95 +33,20 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 	String newline = System.getProperty("line.separator");
 
 	public List<CroppableLineStrip> parseFile(String filename) {
-		try {
 
-			// Get world map csv location
-			File worldMapFile = new File(filename);
+		// Create local line strip and set color
+		CroppableLineStrip lineStrip = new CroppableLineStrip();
+		lineStrip.setWireframeColor(Color.BLACK);
 
-			// Create file reader and CSV reader from world map file
-			FileReader fileReader = new FileReader(worldMapFile);
-			CSVReader reader = new CSVReader(fileReader);
+		// Loop through rows while a next row exists
+		for (City city : solution) {
 
-			// Create row holder and line number counter
-			String[] rowHolder;
-			int lineNumber = 1;
+			// Add the map point to the line strip
+			lineStrip.add(new Point(new Coord3d(city.getX(), city.getY(), city.getZ())));
 
-			// Create local line strip and set color
-			CroppableLineStrip lineStrip = new CroppableLineStrip();
-			lineStrip.setWireframeColor(Color.BLACK);
-
-			// Loop through rows while a next row exists
-			while ((rowHolder = reader.readNext()) != null) {
-
-				switch (rowHolder.length) {
-					case 1:
-						if (rowHolder[0].equals("")) {
-
-							// If row is blank, add line strip to list of line
-							// strips and clear line strip
-							lineStrips.add(lineStrip);
-							lineStrip = new CroppableLineStrip();
-							lineStrip.setWireframeColor(Color.BLACK);
-							break;
-						} else {
-
-							// Throw error if a map point only has one coordinate
-							String oneCoordinateError = "Error on line: " + lineNumber + newline + "The row contains only 1 coordinate";
-							JOptionPane.showMessageDialog(null, oneCoordinateError, "Incorrect number of coordinates", JOptionPane.ERROR_MESSAGE);
-							System.exit(-1);
-						}
-					case 2:
-						try {
-
-							// Add the map point to the line strip
-							lineStrip.add(new Point(new Coord3d(Float.valueOf(rowHolder[0]), Float.valueOf(rowHolder[1]), 0.0)));
-						} catch (NumberFormatException e) {
-
-							// Throw error if a map point coordinate cannot be
-							// converted to a Float
-							String malformedCoordinateError = "Error on line: " + lineNumber + newline + "Coordinate is incorrectly formatted";
-							JOptionPane.showMessageDialog(null, malformedCoordinateError, "Incorrect Format", JOptionPane.ERROR_MESSAGE);
-							e.printStackTrace();
-							System.exit(-1);
-						}
-						break;
-					case 3:
-						try {
-
-							// Add the map point to the line strip
-							lineStrip.add(new Point(new Coord3d(Float.valueOf(rowHolder[0]), Float.valueOf(rowHolder[1]), Float.valueOf(rowHolder[2]))));
-						} catch (NumberFormatException e) {
-
-							// Throw error if a map point coordinate cannot be
-							// converted to a Float
-							String malformedCoordinateError = "Error on line: " + lineNumber + newline + "Coordinate is incorrectly formatted";
-							JOptionPane.showMessageDialog(null, malformedCoordinateError, "Incorrect Format", JOptionPane.ERROR_MESSAGE);
-							e.printStackTrace();
-							System.exit(-1);
-						}
-						break;
-					default:
-
-						// Throw error if the map point has more than three
-						// coordinates
-						String numCoordinateError = "Error on line: " + lineNumber + newline + "The row contains " + rowHolder.length + " coordinates";
-						JOptionPane.showMessageDialog(null, numCoordinateError, "Incorrect number of coordinates", JOptionPane.ERROR_MESSAGE);
-						System.exit(-1);
-				}
-
-				// Add the final lineStrip after while loop is complete.
-				lineStrips.add(lineStrip);
-				lineNumber++;
-			}
-			reader.close();
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			System.out.println("WARNING: World map file not found");
-
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
+		// Add the final lineStrip after while loop is complete.
+		lineStrips.add(lineStrip);
 		return lineStrips;
 	}
 
@@ -145,7 +64,8 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		// Create and add our cities
 
 		// TODO: Load files with cities.
-		City city = new City(5, 1, 2);
+		loadFile();
+		/*City city = new City(5, 1, 2);
 		TourManager.addCity(city);
 		City city2 = new City(3, 0, 4);
 		TourManager.addCity(city2);
@@ -153,13 +73,31 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		TourManager.addCity(city3);
 		City city4 = new City(1, 1, 0);
 		TourManager.addCity(city4);
-
+		 */
 		// Set initial temperature
 		double temperature = 100;
 
 		// Initialize initial solution
 		Tour currentSolution = new Tour();
 		currentSolution.generateIndividual();
+
+		City initialCity = new City(-5.088823029, 10.2098353, 15.10437135);
+		// Get a random positions in the tour
+		int initialCityIndex = currentSolution.getTour().indexOf(initialCity);
+
+		for (int cityIndex = 0; cityIndex < currentSolution.getTour().size(); cityIndex++) {
+			if (currentSolution.getCity(cityIndex).equals(initialCity)) {
+				initialCityIndex = cityIndex;
+			}
+		}
+
+		// Get the cities at selected positions in the tour
+		City citySwap1a = currentSolution.getCity(initialCityIndex);
+		City citySwap2a = currentSolution.getCity(0);
+
+		// Swap them
+		currentSolution.setCity(0, citySwap1a);
+		currentSolution.setCity(initialCityIndex, citySwap2a);
 
 		System.out.println("Initial solution distance: " + currentSolution.getDistance());
 
@@ -172,8 +110,8 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 			Tour newSolution = new Tour(currentSolution.getTour());
 
 			// Get a random positions in the tour
-			int tourPos1 = (int) (newSolution.tourSize() * Math.random());
-			int tourPos2 = (int) (newSolution.tourSize() * Math.random());
+			int tourPos1 = ThreadLocalRandom.current().nextInt(1, TourManager.getNumberOfCities());
+			int tourPos2 = ThreadLocalRandom.current().nextInt(1, TourManager.getNumberOfCities());
 
 			// Get the cities at selected positions in the tour
 			City citySwap1 = newSolution.getCity(tourPos1);
@@ -198,7 +136,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 			}
 
 			// Cool system
-			temperature = temperature / 2;
+			temperature -= 0.5;
 		}
 
 		solution = best.getTour();
@@ -211,7 +149,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		}
 
 		System.out.println("Final solution distance: " + best.getDistance());
-		System.out.println("Tour: " + solution);
+		System.out.println("Tour: " + best);
 	}
 
 	public void init() throws Exception {
@@ -273,9 +211,9 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 
 		// Set axis labels for chart
 		IAxeLayout axeLayout = chart.getAxeLayout();
-		axeLayout.setXAxeLabel("Longitude (deg)");
-		axeLayout.setYAxeLabel("Latitude (deg)");
-		axeLayout.setZAxeLabel("Altitude (km)");
+		axeLayout.setXAxeLabel("Eje X");
+		axeLayout.setYAxeLabel("Eje Y");
+		axeLayout.setZAxeLabel("Eje Z");
 
 		// Set precision of tick values
 		axeLayout.setXTickRenderer(new IntegerTickRenderer());
@@ -289,31 +227,43 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 
 		// Set map viewpoint
 		chart.getView().setViewPoint(new Coord3d(-2 * Math.PI / 3, Math.PI / 4, 0));
-
-		// Animate bounds change for demo
-		Executors.newCachedThreadPool().execute(shiftBoundsTask());
-
 	}
 
-	private Runnable shiftBoundsTask() {
-		return new Runnable() {
-			int step = 1;
+	private static void loadFile() {
+		String line = "";
+		String cvsSplitBy = ";";
+		String csvFile = "./Datos1.csv";
 
-			@Override
-			public void run() {
-				int n = 0;
-					n++;
-					BoundingBox3d b = chart.getView().getBounds();
-					chart.getView().setScaleX(b.getXRange().add(step), false);
-					chart.getView().setScaleY(b.getYRange().add(step), false);
-					chart.getView().setScaleZ(b.getZRange().add(step), false);
-					chart.getView().shoot();
-					try {
-						Thread.sleep(25);
-					} catch (InterruptedException e) {
-					}
+		City city;
+		double x;
+		double y;
+		double z;
+
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new FileReader(csvFile));
+			while ((line = br.readLine()) != null) {
+				// Use semicolon as separator
+				String[] cityCoordenates = line.split(cvsSplitBy);
+
+				x = Double.parseDouble(cityCoordenates[0]);
+
+				y = Double.parseDouble(cityCoordenates[1]);
+				z = Double.parseDouble(cityCoordenates[2]);
+
+				city = new City(x, y, z);
+				TourManager.addCity(city);
 			}
-
-		};
+		} catch (IOException e) {
+			System.out.println("No se pudo leer el archivo.");
+		} finally {
+			if (br != null) {
+				try {
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 }
