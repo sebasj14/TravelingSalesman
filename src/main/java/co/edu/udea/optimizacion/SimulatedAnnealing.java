@@ -61,19 +61,9 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 	}
 
 	public static void main(String[] args) {
-		// Create and add our cities
+		// Load cities
+		loadFile(args[0]);
 
-		// TODO: Load files with cities.
-		loadFile();
-		/*City city = new City(5, 1, 2);
-		TourManager.addCity(city);
-		City city2 = new City(3, 0, 4);
-		TourManager.addCity(city2);
-		City city3 = new City(8, 1, 3);
-		TourManager.addCity(city3);
-		City city4 = new City(1, 1, 0);
-		TourManager.addCity(city4);
-		 */
 		// Set initial temperature
 		double temperature = 100;
 
@@ -81,7 +71,11 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		Tour currentSolution = new Tour();
 		currentSolution.generateIndividual();
 
-		City initialCity = new City(-5.088823029, 10.2098353, 15.10437135);
+		double initialX = Double.parseDouble(args[1]);
+		double initialY = Double.parseDouble(args[2]);
+		double initialZ = Double.parseDouble(args[3]);
+
+		City initialCity = new City(initialX, initialY, initialZ);
 		// Get a random positions in the tour
 		int initialCityIndex = currentSolution.getTour().indexOf(initialCity);
 
@@ -229,10 +223,9 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		chart.getView().setViewPoint(new Coord3d(-2 * Math.PI / 3, Math.PI / 4, 0));
 	}
 
-	private static void loadFile() {
+	private static void loadFile(String filename) {
 		String line = "";
 		String cvsSplitBy = ";";
-		String csvFile = "./Datos1.csv";
 
 		City city;
 		double x;
@@ -241,7 +234,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 
 		BufferedReader br = null;
 		try {
-			br = new BufferedReader(new FileReader(csvFile));
+			br = new BufferedReader(new FileReader(filename));
 			while ((line = br.readLine()) != null) {
 				// Use semicolon as separator
 				String[] cityCoordenates = line.split(cvsSplitBy);
