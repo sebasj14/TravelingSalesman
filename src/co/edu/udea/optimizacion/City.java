@@ -35,16 +35,29 @@ public class City {
 
 	// Gets the distance to given city
 	public double distanceTo(City city) {
-		double xDistance = Math.abs(getX() - city.getX());
-		double yDistance = Math.abs(getY() - city.getY());
-		double zDistance = Math.abs(getZ() - city.getZ());
-		double distance = Math.sqrt((xDistance * xDistance) + (yDistance * yDistance) + (zDistance * zDistance));
+		double xDistance = getX() - city.getX();
+		double yDistance = getY() - city.getY();
+		double zDistance = getZ() - city.getZ();
+		double distance = (xDistance * xDistance) + (yDistance * yDistance) + (zDistance * zDistance);
 
 		return distance;
 	}
 
+	public int sideOfBoundary() {
+		// TODO: Find plane equation from 3 given points.
+		// TODO: Recta
+		double plane = this.getX() - 2 * this.getY() + 3 * this.getZ() - 1;
+		if (Double.compare(plane, 0) < 0) {
+			return -1;
+		} else if (plane > 0) {
+			return 1;
+		}
+
+		return 0;
+	}
+
 	@Override
 	public String toString() {
-		return getX() + ", " + getY();
+		return getX() + ", " + getY() + ", " + getZ();
 	}
 }

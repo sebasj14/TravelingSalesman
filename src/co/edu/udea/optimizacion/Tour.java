@@ -8,7 +8,7 @@ public class Tour {
 	// Holds our tour of cities
 	private ArrayList<City> tour = new ArrayList<>();
 	// Cache
-	private int distance = 0;
+	private double distance = 0;
 
 	// Constructs a blank tour
 	public Tour() {
@@ -51,9 +51,9 @@ public class Tour {
 	}
 
 	// Gets the total distance of the tour
-	public int getDistance() {
+	public double getDistance() {
 		if (distance == 0) {
-			int tourDistance = 0;
+			double tourDistance = 0;
 			// Loop through our tour's cities
 			for (int cityIndex = 0; cityIndex < tourSize(); cityIndex++) {
 				// Get city we're traveling from
@@ -67,8 +67,14 @@ public class Tour {
 				} else {
 					destinationCity = getCity(0);
 				}
-				// Get the distance between the two cities
-				tourDistance += fromCity.distanceTo(destinationCity);
+				// Check if the cities are on the same side of the boundary
+				if (fromCity.sideOfBoundary() == destinationCity.sideOfBoundary()) {
+					// Get the distance between the two cities
+					tourDistance += fromCity.distanceTo(destinationCity);
+				} else {
+					// Get the distance between the two cities
+					tourDistance += fromCity.distanceTo(destinationCity) * 2;
+				}
 			}
 			distance = tourDistance;
 		}
@@ -84,7 +90,7 @@ public class Tour {
 	public String toString() {
 		String geneString = "|";
 		for (int i = 0; i < tourSize(); i++) {
-			geneString += getCity(i) + "|";
+			geneString += "\n" + getCity(i) + "|";
 		}
 		return geneString;
 	}
