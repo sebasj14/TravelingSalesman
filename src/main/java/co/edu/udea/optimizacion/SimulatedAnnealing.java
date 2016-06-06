@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
+import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.log4j.Logger;
 import org.jzy3d.analysis.AbstractAnalysis;
 import org.jzy3d.analysis.AnalysisLauncher;
 import org.jzy3d.chart.factories.AWTChartComponentFactory;
@@ -31,8 +33,14 @@ import org.jzy3d.plot3d.rendering.canvas.Quality;
 
 public class SimulatedAnnealing extends AbstractAnalysis {
 
-	private static List<City> solution = new ArrayList<>();
-	private static Line frontier;
+	private static Logger log = Logger.getLogger(SimulatedAnnealing.class);
+
+	public List<CroppableLineStrip> tourLines = new ArrayList<CroppableLineStrip>();
+	private static List<City> bestSolution = new ArrayList<>();
+
+	private static Line frontierLine;
+	private static Plane frontierPlane;
+
 	private static double frontierP1X;
 	private static double frontierP1Y;
 	private static double frontierP1Z;
@@ -40,216 +48,205 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 	private static double frontierP2Y;
 	private static double frontierP2Z;
 
-	public List<CroppableLineStrip> lineStrips = new ArrayList<CroppableLineStrip>();
-
-	public List<CroppableLineStrip> parseFile(String filename) {
-		// Create local line strip and set color
-		CroppableLineStrip lineStrip = new CroppableLineStrip();
-		lineStrip.setWireframeColor(Color.BLUE);
-
-		// Loop through rows while a next row exists
-		for (City city : solution) {
-			// Add the map point to the line strip
-			lineStrip.add(new Point(new Coord3d(city.getX(), city.getY(), city.getZ())));
-		}
-
-		// Create frontier and add it to lineStrips.
-		CroppableLineStrip frontierLine = new CroppableLineStrip();
-		frontierLine.setWireframeColor(Color.RED);
-		frontierLine.setWidth(2);
-		Point point1 = new Point(new Coord3d(frontierP1X, frontierP1Y, frontierP1Z));
-		Point point2 = new Point(new Coord3d(frontierP2X, frontierP2Y, frontierP2Z));
-		frontierLine.add(point1);
-		frontierLine.add(point2);
-
-		// Add the final lineStrip after while loop is complete.
-		lineStrips.add(lineStrip);
-		lineStrips.add(frontierLine);
-
-		return lineStrips;
-	}
-
-	// Calculate the acceptance probability
-	public static double acceptanceProbability(double currentEnergy, double neighbourEnergy, double temperature) {
-		// If the new solution is better, accept it
-		if (neighbourEnergy < currentEnergy) {
-			return 1.0;
-		}
-		// If the new solution is worse, calculate an acceptance probability
-		return Math.exp((currentEnergy - neighbourEnergy) / temperature);
-	}
-
 	public static void main(String[] args) {
+		loadFileWithCities(args[0]);
 
-		// Load cities
-		loadFile(args[0]);
+		initializeFrontier(args);
 
-		// Define frontier
-		frontierP1X = Double.parseDouble(args[1]);
-		frontierP1Y = Double.parseDouble(args[2]);
-		frontierP1Z = Double.parseDouble(args[3]);
-		Vector3D p1 = new Vector3D(frontierP1X, frontierP1Y, frontierP1Z);
-
-		frontierP2X = Double.parseDouble(args[4]);
-		frontierP2Y = Double.parseDouble(args[5]);
-		frontierP2Z = Double.parseDouble(args[6]);
-		Vector3D p2 = new Vector3D(frontierP2X, frontierP2Y, frontierP2Z);
-
-		frontier = new Line(p1, p2);
-
-		// Set initial temperature
 		double temperature = 100;
 
-		// Initialize initial solution
+		// Initial solution
 		Tour currentSolution = new Tour();
-		currentSolution.generateIndividual();
+		currentSolution.generateRandomIndividual();
 
-		double initialX = Double.parseDouble(args[7]);
-		double initialY = Double.parseDouble(args[8]);
-		double initialZ = Double.parseDouble(args[9]);
+		City initialCity = getInitialCity(args);
+		setFirstCity(currentSolution, initialCity);
 
-		City initialCity = new City(initialX, initialY, initialZ);
-		// Get a random positions in the tour
-		int initialCityIndex = currentSolution.getTour().indexOf(initialCity);
+		simulate(temperature, currentSolution);
+		drawSolution();
+	}
 
-		for (int cityIndex = 0; cityIndex < currentSolution.getTour().size(); cityIndex++) {
-			if (currentSolution.getCity(cityIndex).equals(initialCity)) {
-				initialCityIndex = cityIndex;
-			}
-		}
-
-		// Get the cities at selected positions in the tour
-		City citySwap1a = currentSolution.getCity(initialCityIndex);
-		City citySwap2a = currentSolution.getCity(0);
-
-		// Swap them
-		currentSolution.setCity(0, citySwap1a);
-		currentSolution.setCity(initialCityIndex, citySwap2a);
-
-		System.out.println("Initial solution distance: " + currentSolution.getDistance());
-
+	private static void simulate(double temperature, Tour currentSolution) {
 		// Set as current best
 		Tour best = new Tour(currentSolution.getTour());
 
+		System.out.println("Initial solution distance: " + currentSolution.getDistance());
+
 		// Loop until system has cooled
 		while (temperature > 1) {
-			// Create new neighbor tour
+			// Create new solution tour
 			Tour newSolution = new Tour(currentSolution.getTour());
 
-			// Get a random positions in the tour
-			int tourPos1 = ThreadLocalRandom.current().nextInt(1, TourManager.getNumberOfCities());
-			int tourPos2 = ThreadLocalRandom.current().nextInt(1, TourManager.getNumberOfCities());
-
-			// Get the cities at selected positions in the tour
-			City citySwap1 = newSolution.getCity(tourPos1);
-			City citySwap2 = newSolution.getCity(tourPos2);
-
-			// Swap them
-			newSolution.setCity(tourPos2, citySwap1);
-			newSolution.setCity(tourPos1, citySwap2);
-
-			// Get energy of solutions
-			double currentEnergy = currentSolution.getDistance();
-			double neighbourEnergy = newSolution.getDistance();
-
-			// Decide if we should accept the neighbor
-			if (acceptanceProbability(currentEnergy, neighbourEnergy, temperature) > Math.random()) {
-				currentSolution = new Tour(newSolution.getTour());
-			}
+			shuffleTour(newSolution);
+			currentSolution = getNewSolution(temperature, currentSolution, newSolution);
 
 			// Keep track of the best solution found
 			if (currentSolution.getDistance() < best.getDistance()) {
 				best = new Tour(currentSolution.getTour());
 			}
 
-			// Cool system
-			temperature -= 0.5;
+			temperature = temperature - 0.5;
 		}
 
-		solution = best.getTour();
+		System.out.println("Best solution cost: " + best.getDistance());
+		System.out.println("Tour: " + best);
 
+		bestSolution = best.getTour();
+	}
+
+	private static void setFirstCity(Tour currentSolution, City initialCity) {
+		// Get index from initial city
+		int initialCityIndex = 0;
+		for (int cityIndex = 0; cityIndex < currentSolution.getTour().size(); cityIndex++) {
+			if (currentSolution.getCity(cityIndex).equals(initialCity)) {
+				initialCityIndex = cityIndex;
+			}
+		}
+
+		// Put initial city at the first position of the tour
+		City citySwap1a = currentSolution.getCity(initialCityIndex);
+		City citySwap2a = currentSolution.getCity(0);
+		currentSolution.setCity(0, citySwap1a);
+		currentSolution.setCity(initialCityIndex, citySwap2a);
+	}
+
+	private static City getInitialCity(String[] args) {
+		double initialX = Double.parseDouble(args[7]);
+		double initialY = Double.parseDouble(args[8]);
+		double initialZ = Double.parseDouble(args[9]);
+		City initialCity = new City(initialX, initialY, initialZ);
+		return initialCity;
+	}
+
+	private static void drawSolution() {
 		try {
 			AnalysisLauncher.open(new SimulatedAnnealing());
 		} catch (Exception e) {
-			e.printStackTrace();
-			System.out.println("No grafica." + e.toString());
+			log.error("Error al intentar graficar.", e);
 		}
+	}
 
-		System.out.println("Final solution distance: " + best.getDistance());
-		System.out.println("Tour: " + best);
+	private static Tour getNewSolution(double temperature, Tour currentSolution, Tour newSolution) {
+		double currentEnergy = currentSolution.getDistance();
+		double neighbourEnergy = newSolution.getDistance();
+
+		// Decide if we should accept the new solution
+		if (acceptanceProbability(currentEnergy, neighbourEnergy, temperature) > Math.random()) {
+			currentSolution = new Tour(newSolution.getTour());
+		}
+		return currentSolution;
+	}
+
+	private static void shuffleTour(Tour newSolution) {
+		// Get random positions in the tour from the second city to the last city.
+		int tourPos1 = ThreadLocalRandom.current().nextInt(1, TourManager.getNumberOfCities());
+		int tourPos2 = ThreadLocalRandom.current().nextInt(1, TourManager.getNumberOfCities());
+
+		// Swap cities randomly
+		City citySwap1 = newSolution.getCity(tourPos1);
+		City citySwap2 = newSolution.getCity(tourPos2);
+		newSolution.setCity(tourPos2, citySwap1);
+		newSolution.setCity(tourPos1, citySwap2);
+	}
+
+	private static void initializeFrontier(String[] args) {
+		frontierP1X = Double.parseDouble(args[1]);
+		frontierP1Y = Double.parseDouble(args[2]);
+		frontierP1Z = Double.parseDouble(args[3]);
+		frontierP2X = Double.parseDouble(args[4]);
+		frontierP2Y = Double.parseDouble(args[5]);
+		frontierP2Z = Double.parseDouble(args[6]);
+
+		Vector3D frontierP1 = new Vector3D(frontierP1X, frontierP1Y, frontierP1Z);
+		Vector3D frontierP2 = new Vector3D(frontierP2X, frontierP2Y, frontierP2Z);
+
+		frontierLine = new Line(frontierP1, frontierP2);
+		frontierPlane = new Plane(frontierP1, frontierP2, new Vector3D(2, 5, 0));
+	}
+
+	public static double acceptanceProbability(double currentEnergy, double neighbourEnergy, double temperature) {
+		// If the new solution is better, accept it
+		// If the new solution is worse, calculate an acceptance probability
+		return (neighbourEnergy < currentEnergy) ? 1.0 : Math.exp((currentEnergy - neighbourEnergy) / temperature);
 	}
 
 	public void init() throws Exception {
-		// Define a function to plot
-		Mapper mapper = new Mapper() {
+		Mapper planeFunction = new Mapper() {
 			@Override
 			public double f(double x, double y) {
-				return -3 * x + 6 * y + 3;
+				double coeffX = frontierPlane.getNormal().getX();
+				double coeffY = frontierPlane.getNormal().getY();
+				double coeffZ = frontierPlane.getNormal().getZ();
+				double bias = frontierPlane.getOffset(new Vector3D(0, 0, 0));
+
+				return (-coeffX * x - coeffY * y - bias) / coeffZ;
 			}
 		};
 
-		double x;
-		double y;
-		double z;
-		Coord3d[] points = new Coord3d[solution.size()];
-
-		for (int i = 0; i < solution.size(); i++) {
-			x = solution.get(i).getX();
-			y = solution.get(i).getY();
-			z = solution.get(i).getZ();
-			points[i] = new Coord3d(x, y, z);
-		}
-
-		// TODO: Close trip to make last city = initial city.
-		// TODO: Give initial city a marker and different color.
-		Scatter scatter = new Scatter(points, Color.BLACK);
-		scatter.setWidth(5);
 		chart = AWTChartComponentFactory.chart(Quality.Advanced, "newt");
-		chart.getScene().add(scatter);
+		drawCities();
+		drawFrontierPlane(planeFunction);
+		drawTour();
+		setView();
+	}
 
-		// Define range and precision for the function to plot
-		Range range = new Range(-3, 3);
-		int steps = 80;
+	private void setView() {
+		IAxeLayout axeLayout = chart.getAxeLayout();
+		axeLayout.setXAxeLabel("Eje X");
+		axeLayout.setYAxeLabel("Eje Y");
+		axeLayout.setZAxeLabel("Eje Z");
 
-		// Create the object to represent the function over the given range.
+		axeLayout.setXTickRenderer(new IntegerTickRenderer());
+		axeLayout.setYTickRenderer(new IntegerTickRenderer());
+		axeLayout.setZTickRenderer(new IntegerTickRenderer());
+
+		axeLayout.setXTickProvider(new SmartTickProvider(10));
+		axeLayout.setYTickProvider(new SmartTickProvider(10));
+		axeLayout.setZTickProvider(new SmartTickProvider(10));
+
+		chart.getView().setViewPoint(new Coord3d(-2 * Math.PI / 3, Math.PI / 4, 0));
+	}
+
+	private void drawTour() {
+		this.parseFileWithCities("./Datos1.csv");
+		chart.getScene().getGraph().add(this.tourLines);
+	}
+
+	private void drawFrontierPlane(Mapper mapper) {
+		Range range = new Range(-20, 20);
+		int steps = 10;
+
 		final Shape surface = Builder.buildOrthonormal(new OrthonormalGrid(range, steps, range, steps), mapper);
 		surface.setColorMapper(
 				new ColorMapper(new ColorMapRainbow(), surface.getBounds().getZmin(), surface.getBounds().getZmax(), new Color(1, 1, 1, .5f)));
 		surface.setFaceDisplayed(true);
 		surface.setWireframeDisplayed(false);
 
-		// Create a chart //
-		// chart = AWTChartComponentFactory.chart(Quality.Advanced,
-		// getCanvasType());
 		chart.getScene().getGraph().add(surface);
-
-		// Parse the file
-		this.parseFile("./Datos1.csv");
-
-		// Add line stripe to chart
-		chart.getScene().getGraph().add(this.lineStrips);
-
-		// Set axis labels for chart
-		IAxeLayout axeLayout = chart.getAxeLayout();
-		axeLayout.setXAxeLabel("Eje X");
-		axeLayout.setYAxeLabel("Eje Y");
-		axeLayout.setZAxeLabel("Eje Z");
-
-		// Set precision of tick values
-		axeLayout.setXTickRenderer(new IntegerTickRenderer());
-		axeLayout.setYTickRenderer(new IntegerTickRenderer());
-		axeLayout.setZTickRenderer(new IntegerTickRenderer());
-
-		// Define ticks for axis
-		axeLayout.setXTickProvider(new SmartTickProvider(10));
-		axeLayout.setYTickProvider(new SmartTickProvider(10));
-		axeLayout.setZTickProvider(new SmartTickProvider(10));
-
-		// Set map viewpoint
-		chart.getView().setViewPoint(new Coord3d(-2 * Math.PI / 3, Math.PI / 4, 0));
 	}
 
-	private static void loadFile(String filename) {
+	private void drawCities() {
+		double x;
+		double y;
+		double z;
+		Coord3d[] points = new Coord3d[bestSolution.size()];
+		Color[] colors = new Color[bestSolution.size()];
+
+		for (int i = 0; i < bestSolution.size(); i++) {
+			x = bestSolution.get(i).getX();
+			y = bestSolution.get(i).getY();
+			z = bestSolution.get(i).getZ();
+			points[i] = new Coord3d(x, y, z);
+			colors[i] = Color.BLACK;
+		}
+
+		colors[0] = Color.RED;
+
+		Scatter scatter = new Scatter(points, colors, 5);
+		chart.getScene().add(scatter);
+	}
+
+	private static void loadFileWithCities(String filename) {
 		String line = "";
 		String cvsSplitBy = ";";
 
@@ -264,29 +261,59 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 			while ((line = br.readLine()) != null) {
 				line = line.replace(',', '.');
 				// Use semicolon as separator
-				String[] cityCoordenates = line.split(cvsSplitBy);
+				String[] cityCoordinates = line.split(cvsSplitBy);
 
-				x = Double.parseDouble(cityCoordenates[0]);
-				y = Double.parseDouble(cityCoordenates[1]);
-				z = Double.parseDouble(cityCoordenates[2]);
+				x = Double.parseDouble(cityCoordinates[0]);
+				y = Double.parseDouble(cityCoordinates[1]);
+				z = Double.parseDouble(cityCoordinates[2]);
 
 				city = new City(x, y, z);
 				TourManager.addCity(city);
 			}
 		} catch (IOException e) {
-			System.out.println("No se pudo leer el archivo.");
+			log.error("No se pudo leer el archivo.", e);
 		} finally {
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error("No se pudo leer el archivo.", e);
 				}
 			}
 		}
 	}
 
-	public static Line getFrontier() {
-		return frontier;
+	public List<CroppableLineStrip> parseFileWithCities(String filename) {
+		CroppableLineStrip lineStrip = new CroppableLineStrip();
+		lineStrip.setWireframeColor(Color.BLUE);
+
+		// Add cities to the line strip
+		for (City city : bestSolution) {
+			lineStrip.add(new Point(new Coord3d(city.getX(), city.getY(), city.getZ())));
+		}
+
+		// Close trip to initial city
+		lineStrip.add(new Point(new Coord3d(bestSolution.get(0).getX(), bestSolution.get(0).getY(), bestSolution.get(0).getZ())));
+
+		CroppableLineStrip frontier = new CroppableLineStrip();
+		frontier.setWireframeColor(Color.RED);
+		frontier.setWidth(1);
+		Point point1 = new Point(new Coord3d(frontierP1X, frontierP1Y, frontierP1Z));
+		Point point2 = new Point(new Coord3d(frontierP2X, frontierP2Y, frontierP2Z));
+		frontier.add(point1);
+		frontier.add(point2);
+
+		tourLines.add(lineStrip);
+		// lineStrips.add(frontier);
+
+		return tourLines;
+	}
+
+	public static Line getFrontierLine() {
+		return frontierLine;
+	}
+
+	public static Plane getFrontierPlane() {
+		return frontierPlane;
 	}
 }
