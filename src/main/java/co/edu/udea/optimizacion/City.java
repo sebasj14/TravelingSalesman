@@ -1,9 +1,12 @@
 package co.edu.udea.optimizacion;
 
+import org.apache.commons.math3.geometry.euclidean.threed.Line;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+
 public class City {
-	double x;
-	double y;
-	double z;
+	private double x;
+	private double y;
+	private double z;
 
 	// Constructs a city at chosen x, y, z location
 	public City(double x, double y, double z) {
@@ -28,12 +31,27 @@ public class City {
 
 	// Gets the distance to given city
 	public double distanceTo(City city) {
-		double xDistance = getX() - city.getX();
-		double yDistance = getY() - city.getY();
-		double zDistance = getZ() - city.getZ();
-		double distance = (xDistance * xDistance) + (yDistance * yDistance) + (zDistance * zDistance);
+		Vector3D fromCity = new Vector3D(getX(), getY(), getZ());
+		Vector3D toCity = new Vector3D(city.getX(), city.getY(), city.getZ());
 
-		return distance;
+		return fromCity.distanceSq(toCity);
+	}
+
+	public Vector3D getPoint() {
+		return new Vector3D(getX(), getY(), getZ());
+	}
+
+	public boolean tripIntersectsFrontier(City destinationCity) {
+		Vector3D originPoint = getPoint();
+		Vector3D destinationPoint = destinationCity.getPoint();
+		Line trip = new Line(originPoint, destinationPoint);
+		Line frontier = SimulatedAnnealing.getFrontier();
+
+		if (frontier.contains(originPoint) && frontier.contains(destinationPoint)) {
+			return false;
+		}
+
+		return trip.intersection(frontier) != null;
 	}
 
 	public int sideOfBoundary() {

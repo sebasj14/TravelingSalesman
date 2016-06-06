@@ -7,46 +7,65 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.commons.math3.geometry.euclidean.threed.Line;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.jzy3d.analysis.AbstractAnalysis;
 import org.jzy3d.analysis.AnalysisLauncher;
 import org.jzy3d.chart.factories.AWTChartComponentFactory;
 import org.jzy3d.colors.Color;
+import org.jzy3d.colors.ColorMapper;
+import org.jzy3d.colors.colormaps.ColorMapRainbow;
 import org.jzy3d.maths.Coord3d;
+import org.jzy3d.maths.Range;
+import org.jzy3d.plot3d.builder.Builder;
 import org.jzy3d.plot3d.builder.Mapper;
+import org.jzy3d.plot3d.builder.concrete.OrthonormalGrid;
 import org.jzy3d.plot3d.primitives.CroppableLineStrip;
 import org.jzy3d.plot3d.primitives.Point;
 import org.jzy3d.plot3d.primitives.Scatter;
+import org.jzy3d.plot3d.primitives.Shape;
 import org.jzy3d.plot3d.primitives.axes.layout.IAxeLayout;
 import org.jzy3d.plot3d.primitives.axes.layout.providers.SmartTickProvider;
 import org.jzy3d.plot3d.primitives.axes.layout.renderers.IntegerTickRenderer;
-import org.jzy3d.plot3d.rendering.canvas.ICanvas;
 import org.jzy3d.plot3d.rendering.canvas.Quality;
-import org.jzy3d.plot3d.rendering.scene.Scene;
-import org.jzy3d.plot3d.rendering.view.CroppingView;
-import org.jzy3d.plot3d.rendering.view.View;
 
 public class SimulatedAnnealing extends AbstractAnalysis {
 
 	private static List<City> solution = new ArrayList<>();
+	private static Line frontier;
+	private static double frontierP1X;
+	private static double frontierP1Y;
+	private static double frontierP1Z;
+	private static double frontierP2X;
+	private static double frontierP2Y;
+	private static double frontierP2Z;
 
 	public List<CroppableLineStrip> lineStrips = new ArrayList<CroppableLineStrip>();
-	String newline = System.getProperty("line.separator");
 
 	public List<CroppableLineStrip> parseFile(String filename) {
-
 		// Create local line strip and set color
 		CroppableLineStrip lineStrip = new CroppableLineStrip();
-		lineStrip.setWireframeColor(Color.BLACK);
+		lineStrip.setWireframeColor(Color.BLUE);
 
 		// Loop through rows while a next row exists
 		for (City city : solution) {
-
 			// Add the map point to the line strip
 			lineStrip.add(new Point(new Coord3d(city.getX(), city.getY(), city.getZ())));
-
 		}
+
+		// Create frontier and add it to lineStrips.
+		CroppableLineStrip frontierLine = new CroppableLineStrip();
+		frontierLine.setWireframeColor(Color.RED);
+		frontierLine.setWidth(2);
+		Point point1 = new Point(new Coord3d(frontierP1X, frontierP1Y, frontierP1Z));
+		Point point2 = new Point(new Coord3d(frontierP2X, frontierP2Y, frontierP2Z));
+		frontierLine.add(point1);
+		frontierLine.add(point2);
+
 		// Add the final lineStrip after while loop is complete.
 		lineStrips.add(lineStrip);
+		lineStrips.add(frontierLine);
+
 		return lineStrips;
 	}
 
@@ -61,8 +80,22 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 	}
 
 	public static void main(String[] args) {
+
 		// Load cities
 		loadFile(args[0]);
+
+		// Define frontier
+		frontierP1X = Double.parseDouble(args[1]);
+		frontierP1Y = Double.parseDouble(args[2]);
+		frontierP1Z = Double.parseDouble(args[3]);
+		Vector3D p1 = new Vector3D(frontierP1X, frontierP1Y, frontierP1Z);
+
+		frontierP2X = Double.parseDouble(args[4]);
+		frontierP2Y = Double.parseDouble(args[5]);
+		frontierP2Z = Double.parseDouble(args[6]);
+		Vector3D p2 = new Vector3D(frontierP2X, frontierP2Y, frontierP2Z);
+
+		frontier = new Line(p1, p2);
 
 		// Set initial temperature
 		double temperature = 100;
@@ -71,9 +104,9 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		Tour currentSolution = new Tour();
 		currentSolution.generateIndividual();
 
-		double initialX = Double.parseDouble(args[1]);
-		double initialY = Double.parseDouble(args[2]);
-		double initialZ = Double.parseDouble(args[3]);
+		double initialX = Double.parseDouble(args[7]);
+		double initialY = Double.parseDouble(args[8]);
+		double initialZ = Double.parseDouble(args[9]);
 
 		City initialCity = new City(initialX, initialY, initialZ);
 		// Get a random positions in the tour
@@ -154,10 +187,10 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 				return -3 * x + 6 * y + 3;
 			}
 		};
+
 		double x;
 		double y;
 		double z;
-
 		Coord3d[] points = new Coord3d[solution.size()];
 
 		for (int i = 0; i < solution.size(); i++) {
@@ -167,40 +200,33 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 			points[i] = new Coord3d(x, y, z);
 		}
 
-		Scatter scatter = new Scatter(points, Color.RED);
+		// TODO: Close trip to make last city = initial city.
+		// TODO: Give initial city a marker and different color.
+		Scatter scatter = new Scatter(points, Color.BLACK);
+		scatter.setWidth(5);
 		chart = AWTChartComponentFactory.chart(Quality.Advanced, "newt");
 		chart.getScene().add(scatter);
-		// // Define range and precision for the function to plot
-		// Range range = new Range(-3, 3);
-		// int steps = 80;
-		//
-		// // Create the object to represent the function over the given range.
-		// final Shape surface = Builder.buildOrthonormal(new OrthonormalGrid(range,
-		// steps, range, steps), mapper);
-		// surface.setColorMapper(
-		// new ColorMapper(new ColorMapRainbow(), surface.getBounds().getZmin(),
-		// surface.getBounds().getZmax(), new Color(1, 1, 1, .5f)));
-		// surface.setFaceDisplayed(true);
-		// surface.setWireframeDisplayed(false);
-		//
-		// // Create a chart //
+
+		// Define range and precision for the function to plot
+		Range range = new Range(-3, 3);
+		int steps = 80;
+
+		// Create the object to represent the function over the given range.
+		final Shape surface = Builder.buildOrthonormal(new OrthonormalGrid(range, steps, range, steps), mapper);
+		surface.setColorMapper(
+				new ColorMapper(new ColorMapRainbow(), surface.getBounds().getZmin(), surface.getBounds().getZmax(), new Color(1, 1, 1, .5f)));
+		surface.setFaceDisplayed(true);
+		surface.setWireframeDisplayed(false);
+
+		// Create a chart //
 		// chart = AWTChartComponentFactory.chart(Quality.Advanced,
 		// getCanvasType());
-		// chart.getScene().getGraph().add(surface);
+		chart.getScene().getGraph().add(surface);
 
-		// Create the world map chart
-		AWTChartComponentFactory f = new AWTChartComponentFactory() {
-			@Override
-			public View newView(Scene scene, ICanvas canvas, Quality quality) {
-				return new CroppingView(getFactory(), scene, canvas, quality);
-			}
-		};
-		chart = f.newChart(Quality.Advanced, "awt");
-
-		// Instantiate world map and parse the file
+		// Parse the file
 		this.parseFile("./Datos1.csv");
 
-		// Add world map line stripe to chart
+		// Add line stripe to chart
 		chart.getScene().getGraph().add(this.lineStrips);
 
 		// Set axis labels for chart
@@ -236,11 +262,11 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		try {
 			br = new BufferedReader(new FileReader(filename));
 			while ((line = br.readLine()) != null) {
+				line = line.replace(',', '.');
 				// Use semicolon as separator
 				String[] cityCoordenates = line.split(cvsSplitBy);
 
 				x = Double.parseDouble(cityCoordenates[0]);
-
 				y = Double.parseDouble(cityCoordenates[1]);
 				z = Double.parseDouble(cityCoordenates[2]);
 
@@ -258,5 +284,9 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 				}
 			}
 		}
+	}
+
+	public static Line getFrontier() {
+		return frontier;
 	}
 }

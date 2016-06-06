@@ -66,13 +66,14 @@ public class Tour {
 				} else {
 					destinationCity = getCity(0);
 				}
-				// Check if the cities are on the same side of the boundary
-				if (fromCity.sideOfBoundary() == destinationCity.sideOfBoundary()) {
+				// Check if trip between cities intersects with frontier
+				if (fromCity.tripIntersectsFrontier(destinationCity)) {
 					// Get the distance between the two cities
-					tourDistance += fromCity.distanceTo(destinationCity);
+					System.out.println("CRUZAAAAAAAAAAAAAAAAA :DDDDDDDDDDDDDDD");
+					tourDistance += fromCity.distanceTo(destinationCity) * 2;
 				} else {
 					// Get the distance between the two cities
-					tourDistance += fromCity.distanceTo(destinationCity) * 2;
+					tourDistance += fromCity.distanceTo(destinationCity);
 				}
 			}
 			distance = tourDistance;
