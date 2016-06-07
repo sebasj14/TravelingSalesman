@@ -1,3 +1,4 @@
 # TravelingSalesman
-Optimización Numérica - Universidad de Antioquia - 2016
-Sebastián Jiménez - Carolina Isaza
+OptimizaciÃ³n NumÃ©rica - Universidad de Antioquia - 2016
+
+SebastiÃ¡n JimÃ©nez - Carolina Isaza
