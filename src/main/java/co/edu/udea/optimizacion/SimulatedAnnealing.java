@@ -222,7 +222,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		surface.setFaceDisplayed(true);
 		surface.setWireframeDisplayed(false);
 
-		chart.getScene().getGraph().add(surface);
+		// chart.getScene().getGraph().add(surface);
 	}
 
 	private void drawCities() {
@@ -304,7 +304,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		frontier.add(point2);
 
 		tourLines.add(lineStrip);
-		// lineStrips.add(frontier);
+		tourLines.add(frontier);
 
 		return tourLines;
 	}
