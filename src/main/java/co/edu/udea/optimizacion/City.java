@@ -46,13 +46,13 @@ public class City {
 		Line frontier = SimulatedAnnealing.getFrontierLine();
 		Plane plane = SimulatedAnnealing.getFrontierPlane();
 
-		// return (plane.intersection(trip) != null);
+		 return (plane.intersection(trip) != null);
 
-		if (frontier.contains(originPoint) && frontier.contains(destinationPoint)) {
-			return false;
-		}
-
-		return trip.intersection(frontier) != null;
+//		if (frontier.contains(originPoint) && frontier.contains(destinationPoint)) {
+//			return false;
+//		}
+//
+//		return trip.intersection(frontier) != null;
 	}
 
 	@Override

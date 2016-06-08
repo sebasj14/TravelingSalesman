@@ -4,7 +4,7 @@
 	<groupId>co.edu.udea.optimizacion</groupId>
 	<artifactId>TravelingSalesmanOptimization</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>pom</packaging>
+	<packaging>jar</packaging>
 	<name>TravelingSalesmanOptimization</name>
 	<description>Traveling salesman optimization problem</description>
 	<build>

@@ -47,8 +47,12 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 	private static double frontierP2X;
 	private static double frontierP2Y;
 	private static double frontierP2Z;
+	private static double frontierP3X;
+	private static double frontierP3Y;
+	private static double frontierP3Z;
 
 	public static void main(String[] args) {
+		long initTime = System.currentTimeMillis();
 		loadFileWithCities(args[0]);
 
 		initializeFrontier(args);
@@ -63,6 +67,8 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		setFirstCity(currentSolution, initialCity);
 
 		simulate(temperature, currentSolution);
+		long finalTime = System.currentTimeMillis();
+		System.out.println("###### TIME SPENT #####\n" + (finalTime - initTime) + " millisecs");
 		drawSolution();
 	}
 
@@ -70,7 +76,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		// Set as current best
 		Tour best = new Tour(currentSolution.getTour());
 
-		System.out.println("Initial solution distance: " + currentSolution.getDistance());
+		System.out.println("Initial solution cost: " + currentSolution.getDistance());
 
 		// Loop until system has cooled
 		while (temperature > 1) {
@@ -85,7 +91,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 				best = new Tour(currentSolution.getTour());
 			}
 
-			temperature = temperature - 0.5;
+			temperature = temperature - temperature*0.2;
 		}
 
 		System.out.println("Best solution cost: " + best.getDistance());
@@ -111,9 +117,9 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 	}
 
 	private static City getInitialCity(String[] args) {
-		double initialX = Double.parseDouble(args[7]);
-		double initialY = Double.parseDouble(args[8]);
-		double initialZ = Double.parseDouble(args[9]);
+		double initialX = Double.parseDouble(args[10]);
+		double initialY = Double.parseDouble(args[11]);
+		double initialZ = Double.parseDouble(args[12]);
 		City initialCity = new City(initialX, initialY, initialZ);
 		return initialCity;
 	}
@@ -156,12 +162,16 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		frontierP2X = Double.parseDouble(args[4]);
 		frontierP2Y = Double.parseDouble(args[5]);
 		frontierP2Z = Double.parseDouble(args[6]);
+		frontierP3X = Double.parseDouble(args[7]);
+		frontierP3Y = Double.parseDouble(args[8]);
+		frontierP3Z = Double.parseDouble(args[9]);
 
 		Vector3D frontierP1 = new Vector3D(frontierP1X, frontierP1Y, frontierP1Z);
 		Vector3D frontierP2 = new Vector3D(frontierP2X, frontierP2Y, frontierP2Z);
+		Vector3D frontierP3 = new Vector3D(frontierP3X, frontierP3Y, frontierP3Z);
 
 		frontierLine = new Line(frontierP1, frontierP2);
-		frontierPlane = new Plane(frontierP1, frontierP2, new Vector3D(2, 5, 0));
+		frontierPlane = new Plane(frontierP1, frontierP2, frontierP3);
 	}
 
 	public static double acceptanceProbability(double currentEnergy, double neighbourEnergy, double temperature) {
@@ -222,7 +232,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		surface.setFaceDisplayed(true);
 		surface.setWireframeDisplayed(false);
 
-		// chart.getScene().getGraph().add(surface);
+		chart.getScene().getGraph().add(surface);
 	}
 
 	private void drawCities() {
@@ -304,7 +314,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		frontier.add(point2);
 
 		tourLines.add(lineStrip);
-		tourLines.add(frontier);
+//		tourLines.add(frontier);
 
 		return tourLines;
 	}
