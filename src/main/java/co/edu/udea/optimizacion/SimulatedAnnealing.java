@@ -79,19 +79,22 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		System.out.println("Initial solution cost: " + currentSolution.getDistance());
 
 		// Loop until system has cooled
-		while (temperature > 1) {
-			// Create new solution tour
-			Tour newSolution = new Tour(currentSolution.getTour());
+		for (int i = 0; i < 1000; i++) {
+			temperature = 100;
+			while (temperature > 1) {
+				// Create new solution tour
+				Tour newSolution = new Tour(currentSolution.getTour());
 
-			shuffleTour(newSolution);
-			currentSolution = getNewSolution(temperature, currentSolution, newSolution);
+				shuffleTour(newSolution);
+				currentSolution = getNewSolution(temperature, currentSolution, newSolution);
 
-			// Keep track of the best solution found
-			if (currentSolution.getDistance() < best.getDistance()) {
-				best = new Tour(currentSolution.getTour());
+				// Keep track of the best solution found
+				if (currentSolution.getDistance() < best.getDistance()) {
+					best = new Tour(currentSolution.getTour());
+				}
+
+				temperature = temperature - 1;
 			}
-
-			temperature = temperature - temperature*0.2;
 		}
 
 		System.out.println("Best solution cost: " + best.getDistance());
@@ -314,7 +317,7 @@ public class SimulatedAnnealing extends AbstractAnalysis {
 		frontier.add(point2);
 
 		tourLines.add(lineStrip);
-//		tourLines.add(frontier);
+		//		tourLines.add(frontier);
 
 		return tourLines;
 	}
